@@ -1,3 +1,3 @@
 Echipa: 
-Deaconu Alina Cristina 
+Deaconu Alina Cristina, 
 Mirescu Cosmin Raul
