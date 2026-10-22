@@ -1,0 +1,100 @@
+#include <LiquidCrystal.h>
+
+int rs=12, e=11, d4=5, d5=4,d6=3,d7=2;
+LiquidCrystal lcd(rs,e,d4,d5,d6,d7);
+int const PinSenzor=A0;
+int ora,minut,secunde;
+bool secundaTrecuta = false;
+
+ISR(TIMER1_COMPA_vect)
+{
+  secundaTrecuta = true;
+}
+
+void afisare_lcd(float temperatura)
+{
+  lcd.setCursor(0, 0);
+  lcd.print("Temp = ");
+  lcd.print(temperatura);
+  lcd.print(" 'C  ");
+  
+
+  lcd.setCursor(0, 1);
+  lcd.print("Ora ");
+
+  if (ora < 10) lcd.print('0');
+  lcd.print(ora);
+  lcd.print(":");
+
+  if (minut < 10) lcd.print('0');
+  lcd.print(minut);
+  lcd.print(":");
+
+  if (secunde < 10) lcd.print('0');
+  lcd.print(secunde);
+  lcd.print("   ");
+}
+
+float citesteTemperatura()
+{
+  int valCitita = analogRead(PinSenzor);
+  float tensiune = (valCitita * 5000.0) / 1024.0;
+  float temperatura = (tensiune - 500.0) / 10.0;  
+  return temperatura;
+
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+
+  lcd.clear();
+
+  noInterrupts();
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 0;
+  OCR1A = 15624;
+  TCCR1B |= (1 << WGM12);                    
+  TCCR1B |= (1 << CS12) | (1 << CS10);        
+  TIMSK1 |= (1 << OCIE1A);                    
+  interrupts();
+
+  
+  char timeStr[] = __TIME__;
+  ora = (timeStr[0] - '0') * 10 + (timeStr[1] - '0');
+  minut = (timeStr[3] - '0') * 10 + (timeStr[4] - '0');
+  secunde = (timeStr[6] - '0') * 10 + (timeStr[7] - '0');
+
+  ora = ora + 3;
+  if (ora > 23) ora = ora - 24;
+
+  float temp0 = citesteTemperatura();
+  lcd.clear();
+  afisare_lcd(temp0);
+}
+
+void loop()
+{
+  if (secundaTrecuta == true)
+  {
+    secundaTrecuta = false;
+    secunde++;
+    if (secunde > 59) {
+      secunde = 0;
+      minut++;
+    }
+    if (minut > 59) {
+      minut = 0;
+      ora++;
+    }
+    if (ora > 23) {
+      ora = 0;
+    }
+
+    float temperatura = citesteTemperatura();
+
+    afisare_lcd(temperatura);
+  }
+}
